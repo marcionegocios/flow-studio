@@ -1,4 +1,4 @@
-import { closeSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, renameSync, statSync, writeFileSync } from "node:fs";
+import { closeSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, openSync, readFileSync, readSync, readdirSync, renameSync, statSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir, tmpdir } from "node:os";
 import { basename, extname, join } from "node:path";
 import type { Locator, Page } from "playwright-core";
@@ -46,6 +46,10 @@ async function dismissOverlays(page: Page): Promise<void> {
   await page.keyboard.press("Escape");
   const closePanel = page.getByRole("button", { name: "Close account panel" });
   if (await closePanel.isVisible().catch(() => false)) await closePanel.click({ timeout: 5000 }).catch(() => {});
+  const gotIt = page.locator('button[aria-label*="dismiss onboarding" i], button:has-text("Got it")');
+  if (await gotIt.isVisible().catch(() => false)) await gotIt.click().catch(() => {});
+  const closeAgent = page.locator('flow-agent-session-panel button[aria-label="Close"], flow-agent-panel button[aria-label="Close"], .header-action:has-text("close")');
+  if (await closeAgent.isVisible().catch(() => false)) await closeAgent.click().catch(() => {});
   await clearBackdrops(page);
 }
 
@@ -102,7 +106,7 @@ async function readCredits(page: Page): Promise<number | undefined> {
   }
 }
 
-const settingsTrigger = (page: Page) => page.getByRole("button", { name: "Settings trigger" });
+const settingsTrigger = (page: Page) => page.locator('button.settings-trigger-button, button[aria-label="Settings trigger"], [aria-label="Settings trigger"]').first();
 
 // Every finished tile carries its media id in data-media-id; some thumbnails also have it in the URL, but Flow
 // serves signed /asb/ links with no uuid, so the attribute comes first and the URL is only a fallback.
@@ -679,7 +683,16 @@ async function downloadTile(page: Page, target: Locator | TileResolver, targetSt
       if (kind === ".zip") saved = unpackTakes(file, targetStem);
       else {
         const target = `${targetStem}${kind}`;
-        renameSync(file, target);
+        try {
+          renameSync(file, target);
+        } catch (e: any) {
+          if (e.code === 'EXDEV') {
+            copyFileSync(file, target);
+            unlinkSync(file);
+          } else {
+            throw e;
+          }
+        }
         saved = [target];
       }
       await page.keyboard.press("Escape");
@@ -775,8 +788,13 @@ export async function runGeneration(job: Job): Promise<string[]> {
   const s = job.params;
 
   await ensureProjectGrid(page);
-  const agent = page.getByRole("button", { name: "Agent", exact: true });
-  if ((await agent.getAttribute("aria-pressed")) === "true") await agent.click();
+  const agentChip = page.locator('flow-agent-mode-toggle-chip button, button.agent-mode-chip, button:has(.agent-mode-chip-label)');
+  if (await agentChip.isVisible({ timeout: 1500 }).catch(() => false)) {
+    if ((await agentChip.getAttribute("aria-pressed").catch(() => null)) === "true") {
+      await agentChip.click().catch(() => {});
+      await pause(page, 500);
+    }
+  }
   const clear = page.getByRole("button", { name: "Clear prompt" });
   if (await clear.isVisible().catch(() => false)) await clear.click();
 

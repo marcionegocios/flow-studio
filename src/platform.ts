@@ -78,12 +78,31 @@ export function extractZip(zip: string, dest: string): string[] {
   return files;
 }
 
-// Opens a page in the default browser.
+// Opens a page in Google Chrome (falling back to default browser).
 export function openUrl(url: string): void {
   try {
-    if (IS_MAC) execFileSync("open", [url], { stdio: "ignore" });
-    else if (IS_WIN) execFileSync("cmd", ["/c", "start", "", url], { stdio: "ignore", windowsHide: true });
-    else execFileSync("xdg-open", [url], { stdio: "ignore" });
+    if (IS_MAC) {
+      try {
+        execFileSync("open", ["-a", "Google Chrome", url], { stdio: "ignore" });
+        return;
+      } catch {
+        execFileSync("open", [url], { stdio: "ignore" });
+      }
+    } else if (IS_WIN) {
+      const chromePath = "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe";
+      if (existsSync(chromePath)) {
+        execFileSync("cmd", ["/c", "start", '""', chromePath, url], { stdio: "ignore", windowsHide: true });
+        return;
+      }
+      try {
+        execFileSync("cmd", ["/c", "start", "chrome", url], { stdio: "ignore", windowsHide: true });
+        return;
+      } catch {
+        execFileSync("cmd", ["/c", "start", '""', url], { stdio: "ignore", windowsHide: true });
+      }
+    } else {
+      execFileSync("google-chrome", [url], { stdio: "ignore" });
+    }
   } catch {
     // Opening the browser is a convenience; the address is printed either way.
   }

@@ -1,20 +1,27 @@
 {
-  "name": "flow-mcp",
-  "version": "0.1.0",
-  "description": "Local MCP server that drives Google Flow in a dedicated Chrome profile",
-  "main": "index.js",
+  "name": "flow-studio",
+  "version": "1.0.0",
+  "description": "Flow Studio - Painel Visual e Automacao para Criacao de Videos com Google Flow & Veo",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node dist/index.js",
     "login": "node dist/login.js",
     "studio": "node dist/studio.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "flow",
+    "google-flow",
+    "veo",
+    "ai-video",
+    "flow-studio",
+    "mcp"
+  ],
+  "author": "Marcio Martins",
   "license": "ISC",
   "type": "module",
   "bin": {
+    "flow-studio": "dist/index.js",
     "flow-mcp": "dist/index.js"
   },
   "dependencies": {
